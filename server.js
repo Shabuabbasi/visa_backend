@@ -19,25 +19,29 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use(cors({
-  origin: "*", // abhi sab allowed (chahe netlify, vercel ya localhost ho)
-  credentials: true
-}));
+// app.use(cors({
+//   origin: "*", // abhi sab allowed (chahe netlify, vercel ya localhost ho)
+//   credentials: true
+// }));
 
-// const allowedOrigins = process.env.FRONTEND_URL.split(",");
+// CORS: allow only frontend domains in production
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",")
+  : ["http://localhost:5173"];
 
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       if (!origin || allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS"));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman / server-to-server
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("❌ Not allowed by CORS: " + origin));
+      }
+    },
+    credentials: true,
+  })
+);
 
 
 
