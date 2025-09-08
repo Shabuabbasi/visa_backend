@@ -1,5 +1,13 @@
 import Settings from "../models/settingsModel.js";
 
+// Helper to get base URL depending on environment
+const getBaseUrl = (req) => {
+  if (process.env.NODE_ENV === "production") {
+    return "https://bookingbackend-production-0a58.up.railway.app";
+  }
+  return `${req.protocol}://${req.get("host")}`;
+};
+
 // GET settings
 export const getSettings = async (req, res) => {
   try {
@@ -9,8 +17,7 @@ export const getSettings = async (req, res) => {
       await settings.save();
     }
 
-    // Build base URL dynamically
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl = getBaseUrl(req);
 
     res.json({
       success: true,
@@ -35,15 +42,14 @@ export const getSettings = async (req, res) => {
 export const updateSettings = async (req, res) => {
   try {
     let settings = await Settings.findOne();
-
     if (!settings) {
       settings = new Settings();
     }
 
-    // Map frontend fields → backend schema
+    // Update fields
     settings.companyName = req.body.companyName || settings.companyName;
 
-    // Store only filename in DB, not full URL
+    // Handle logo upload: store filename only
     if (req.body.logoUrl) {
       const filename = req.body.logoUrl.split("/").pop();
       settings.logo = filename;
@@ -58,7 +64,7 @@ export const updateSettings = async (req, res) => {
 
     await settings.save();
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl = getBaseUrl(req);
 
     res.json({
       success: true,
