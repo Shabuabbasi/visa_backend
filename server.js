@@ -19,10 +19,10 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-// app.use(cors({
-//   origin: "*", // abhi sab allowed (chahe netlify, vercel ya localhost ho)
-//   credentials: true
-// }));
+app.use(cors({
+  origin: "*", // abhi sab allowed (chahe netlify, vercel ya localhost ho)
+  credentials: true
+}));
 
 // CORS: allow only frontend domains in production
 // const allowedOrigins = process.env.FRONTEND_URL
@@ -44,27 +44,28 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 //   })
 // );
 // CORS: allow only frontend domains in production
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/\/$/, "")) // remove spaces + trailing slash
-  : [];
+// mmmmmmmm
+// const allowedOrigins = process.env.FRONTEND_URL
+//   ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/\/$/, "")) // remove spaces + trailing slash
+//   : [];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman / server-to-server
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin) return callback(null, true); // allow Postman / server-to-server
 
-      const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash from request
+//       const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash from request
 
-      if (allowedOrigins.includes(cleanOrigin)) {
-        callback(null, true);
-      } else {
-        console.error("❌ Blocked by CORS:", origin);
-        callback(new Error("❌ Not allowed by CORS: " + origin));
-      }
-    },
-    credentials: true,
-  })
-);
+//       if (allowedOrigins.includes(cleanOrigin)) {
+//         callback(null, true);
+//       } else {
+//         console.error("❌ Blocked by CORS:", origin);
+//         callback(new Error("❌ Not allowed by CORS: " + origin));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 
 
 
