@@ -27,9 +27,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // CORS: allow only frontend domains in production
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",")
-  : ["http://localhost:5173",
-      "https://effulgent-crisp-f69dc2.netlify.app",
-  "https://frontend-booking-ttwc-hym2ad55e-salahudins-projects-3f538e76.vercel.app"
+  : [
   ];
 
 app.use(
