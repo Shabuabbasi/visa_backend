@@ -1,4 +1,3 @@
-// routes/uploadRoutes.js
 import express from "express";
 import multer from "multer";
 import path from "path";
@@ -11,10 +10,7 @@ const storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename(req, file, cb) {
-    cb(
-      null,
-      `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`
-    );
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`);
   },
 });
 
@@ -38,13 +34,15 @@ const upload = multer({ storage, fileFilter });
 // POST /api/upload/logo
 router.post("/logo", upload.single("logo"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
+    return res
+      .status(400)
+      .json({ success: false, message: "No file uploaded" });
   }
 
-  const filePath = `/uploads/${req.file.filename}`;
+  // ✅ Always return only the filename
   res.json({
     success: true,
-    logoUrl: `http://localhost:5000${filePath}`,
+    fileUrl: req.file.filename,
   });
 });
 

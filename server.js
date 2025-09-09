@@ -25,18 +25,40 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // }));
 
 // CORS: allow only frontend domains in production
+// const allowedOrigins = process.env.FRONTEND_URL
+//   ? process.env.FRONTEND_URL.split(",")
+//   : [
+//   ];
+
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin) return callback(null, true); // allow Postman / server-to-server
+//       if (allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("❌ Not allowed by CORS: " + origin));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
+// CORS: allow only frontend domains in production
 const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(",")
-  : [
-  ];
+  ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/\/$/, "")) // remove spaces + trailing slash
+  : [];
 
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true); // allow Postman / server-to-server
-      if (allowedOrigins.includes(origin)) {
+
+      const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash from request
+
+      if (allowedOrigins.includes(cleanOrigin)) {
         callback(null, true);
       } else {
+        console.error("❌ Blocked by CORS:", origin);
         callback(new Error("❌ Not allowed by CORS: " + origin));
       }
     },

@@ -1,11 +1,30 @@
 import Settings from "../models/settingsModel.js";
 
-// Helper to get base URL depending on environment
-const getBaseUrl = (req) => {
-  if (process.env.NODE_ENV === "production") {
-    return "https://bookingbackend-production-0a58.up.railway.app";
+/**
+ * Return backend base URL:
+ * - Prefer explicit BACKEND_URL from env (recommended for prod)
+ * - Fallback to req.protocol + host (useful for local dev)
+ */
+export const getBaseUrl = (req) => {
+  // If running locally → use local host/port
+  if (process.env.NODE_ENV === "development") {
+    return `${req.protocol}://${req.get("host")}`;
   }
-  return `${req.protocol}://${req.get("host")}`;
+
+  // In production → use BACKEND_URL if set
+  return process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
+};
+
+
+// Helper: build public logo URL from DB value
+const buildLogoUrl = (baseUrl, logoField) => {
+  if (!logoField) return `${baseUrl}/uploads/logo.png`;
+  if (typeof logoField === "string" && logoField.startsWith("http")) {
+    // stored as external or already full URL
+    return logoField;
+  }
+  // stored as filename
+  return `${baseUrl}/uploads/${logoField}`;
 };
 
 // GET settings
@@ -18,14 +37,13 @@ export const getSettings = async (req, res) => {
     }
 
     const baseUrl = getBaseUrl(req);
+    const logoUrl = buildLogoUrl(baseUrl, settings.logo);
 
     res.json({
       success: true,
       settings: {
         companyName: settings.companyName,
-        logoUrl: settings.logo
-          ? `${baseUrl}/uploads/${settings.logo}`
-          : `${baseUrl}/uploads/logo.png`,
+        logoUrl,
         footer: {
           email: settings.footer?.contactEmail || "",
           phone: settings.footer?.contactPhone || "",
@@ -42,19 +60,17 @@ export const getSettings = async (req, res) => {
 export const updateSettings = async (req, res) => {
   try {
     let settings = await Settings.findOne();
-    if (!settings) {
-      settings = new Settings();
-    }
+    if (!settings) settings = new Settings();
 
-    // Update fields
+    // Update simple fields
     settings.companyName = req.body.companyName || settings.companyName;
 
-    // Handle logo upload: store filename only
+    // ✅ Always store only filename
     if (req.body.logoUrl) {
-      const filename = req.body.logoUrl.split("/").pop();
-      settings.logo = filename;
+      settings.logo = req.body.logoUrl.split("/").pop();
     }
 
+    // Footer
     settings.footer.contactEmail =
       req.body.footer?.email || settings.footer.contactEmail;
     settings.footer.contactPhone =
@@ -65,14 +81,13 @@ export const updateSettings = async (req, res) => {
     await settings.save();
 
     const baseUrl = getBaseUrl(req);
+    const logoUrl = buildLogoUrl(baseUrl, settings.logo);
 
     res.json({
       success: true,
       settings: {
         companyName: settings.companyName,
-        logoUrl: settings.logo
-          ? `${baseUrl}/uploads/${settings.logo}`
-          : `${baseUrl}/uploads/logo.png`,
+        logoUrl,
         footer: {
           email: settings.footer?.contactEmail || "",
           phone: settings.footer?.contactPhone || "",
