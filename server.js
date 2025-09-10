@@ -44,27 +44,27 @@ app.use(cors({
 //   })
 // );
 // CORS: allow only frontend domains in production
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/\/$/, "")) // remove spaces + trailing slash
-  : [];
+// const allowedOrigins = process.env.FRONTEND_URL
+//   ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/\/$/, "")) // remove spaces + trailing slash
+//   : [];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman / server-to-server
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin) return callback(null, true); // allow Postman / server-to-server
 
-      const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash from request
+//       const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash from request
 
-      if (allowedOrigins.includes(cleanOrigin)) {
-        callback(null, true);
-      } else {
-        console.error("❌ Blocked by CORS:", origin);
-        callback(new Error("❌ Not allowed by CORS: " + origin));
-      }
-    },
-    credentials: true,
-  })
-);
+//       if (allowedOrigins.includes(cleanOrigin)) {
+//         callback(null, true);
+//       } else {
+//         console.error("❌ Blocked by CORS:", origin);
+//         callback(new Error("❌ Not allowed by CORS: " + origin));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 
 
 
@@ -133,4 +133,6 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
