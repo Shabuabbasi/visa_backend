@@ -6,24 +6,19 @@ import Settings from "../models/settingsModel.js";
  * - Fallback to req.protocol + host (useful for local dev)
  */
 export const getBaseUrl = (req) => {
-  // If running locally → use local host/port
   if (process.env.NODE_ENV === "development") {
     return `${req.protocol}://${req.get("host")}`;
   }
-
-  // In production → use BACKEND_URL if set
   return process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
 };
 
-
-// Helper: build public logo URL from DB value
+// ✅ If logo is already a full URL, just return it
 const buildLogoUrl = (baseUrl, logoField) => {
-  if (!logoField) return `${baseUrl}/uploads/logo.png`;
+  if (!logoField) return ""; // no logo set
   if (typeof logoField === "string" && logoField.startsWith("http")) {
-    // stored as external or already full URL
-    return logoField;
+    return logoField; // already full URL (Cloudinary, external, etc.)
   }
-  // stored as filename
+  // fallback for old local files
   return `${baseUrl}/uploads/${logoField}`;
 };
 
@@ -65,9 +60,9 @@ export const updateSettings = async (req, res) => {
     // Update simple fields
     settings.companyName = req.body.companyName || settings.companyName;
 
-    // ✅ Always store only filename
+    // ✅ Store full Cloudinary URL instead of filename
     if (req.body.logoUrl) {
-      settings.logo = req.body.logoUrl.split("/").pop();
+      settings.logo = req.body.logoUrl; 
     }
 
     // Footer
