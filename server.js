@@ -11,6 +11,7 @@ import businessRoutes from "./Routes/businessRoutes.js";
 import contactRoutes from "./Routes/contactRoutes.js";
 import leadRoutes from "./Routes/leadRoutes.js";
 import settingsRoutes from "./Routes/settingsRoutes.js";
+import { seedSettings } from "./seed/seedSettings.js";
 
 import userRoutes from "./Routes/userRoutes.js";
 
@@ -34,26 +35,36 @@ app.use((req, res, next) => {
 // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ===== CORS setup =====
-const allowedOrigins = [
-  "http://localhost:5173", // local frontend
-  "https://clever-faun-209c47.netlify.app", // netlify frontend
-  "https://frontend-booking-dcdj.vercel.app", // vercel frontend
-];
+// const allowedOrigins = [
+//   "http://localhost:5173", // local frontend
+//   "https://clever-faun-209c47.netlify.app", // netlify frontend
+//   "https://frontend-booking-dcdj.vercel.app", // vercel frontend
+// ];
+
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       if (!origin) return callback(null, true); // allow Postman/curl
+//       if (allowedOrigins.includes(origin)) {
+//         return callback(null, true);
+//       } else {
+//         console.warn("❌ Blocked by CORS:", origin);
+//         return callback(new Error("Not allowed by CORS"), false);
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
+
+
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow Postman/curl
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        console.warn("❌ Blocked by CORS:", origin);
-        return callback(new Error("Not allowed by CORS"), false);
-      }
-    },
+    origin: "*",
     credentials: true,
   })
 );
+
 
 // ===== Routes =====
 app.use("/api/business", businessRoutes);
@@ -64,16 +75,21 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/auth", userRoutes);
 
 // ===== MongoDB Connection =====
+// ===== MongoDB Connection =====
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB Connected");
+
+    // 👇 Run seeder once DB is connected
+    await seedSettings();
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err.message);
     process.exit(1);
   }
 };
 connectDB();
+
 
 // ===== Health check route =====
 app.get("/", (req, res) => {

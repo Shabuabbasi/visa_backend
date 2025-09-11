@@ -29,18 +29,21 @@ export const getSettings = async (req, res) => {
 // ✅ PUT /api/settings
 export const updateSettings = async (req, res) => {
   try {
-    const { companyName, logoUrl, footer } = req.body;
+    // ✅ Safe fallback: avoid crash if body is missing
+    const body = req.body || {};
+
+    const { companyName, logoUrl, footer } = body;
 
     let settings = await Settings.findOne();
     if (!settings) settings = new Settings();
 
-    if (companyName) settings.companyName = companyName;
-    if (logoUrl) settings.logo = logoUrl;
+    if (companyName !== undefined) settings.companyName = companyName;
+    if (logoUrl !== undefined) settings.logo = logoUrl;
 
     if (footer) {
-      settings.footer.contactEmail = footer.email || settings.footer.contactEmail;
-      settings.footer.contactPhone = footer.phone || settings.footer.contactPhone;
-      settings.footer.address = footer.address || settings.footer.address;
+      if (footer.email !== undefined) settings.footer.contactEmail = footer.email;
+      if (footer.phone !== undefined) settings.footer.contactPhone = footer.phone;
+      if (footer.address !== undefined) settings.footer.address = footer.address;
     }
 
     await settings.save();
