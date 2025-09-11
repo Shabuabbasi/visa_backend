@@ -1,10 +1,6 @@
 import Settings from "../models/settingsModel.js";
 
-/**
- * Return backend base URL:
- * - Prefer explicit BACKEND_URL from env (recommended for prod)
- * - Fallback to req.protocol + host (useful for local dev)
- */
+// Get backend base URL
 export const getBaseUrl = (req) => {
   if (process.env.NODE_ENV === "development") {
     return `${req.protocol}://${req.get("host")}`;
@@ -12,14 +8,13 @@ export const getBaseUrl = (req) => {
   return process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
 };
 
-// ✅ If logo is already a full URL, just return it
+// Build logo URL for frontend
 const buildLogoUrl = (baseUrl, logoField) => {
-  if (!logoField) return ""; // no logo set
+  if (!logoField) return "";
   if (typeof logoField === "string" && logoField.startsWith("http")) {
-    return logoField; // already full URL (Cloudinary, external, etc.)
+    return logoField; // Cloudinary URL
   }
-  // fallback for old local files
-  return `${baseUrl}/uploads/${logoField}`;
+  return `${baseUrl}/uploads/${logoField}`; // local
 };
 
 // GET settings
@@ -37,7 +32,7 @@ export const getSettings = async (req, res) => {
     res.json({
       success: true,
       settings: {
-        companyName: settings.companyName,
+        companyName: settings.companyName || "",
         logoUrl,
         footer: {
           email: settings.footer?.contactEmail || "",
@@ -54,24 +49,28 @@ export const getSettings = async (req, res) => {
 // UPDATE settings
 export const updateSettings = async (req, res) => {
   try {
+    if (!req.body) return res.status(400).json({ success: false, message: "No data provided" });
+    console.log("➡️ Incoming settings update:", req.body);
+
     let settings = await Settings.findOne();
-    if (!settings) settings = new Settings();
-
-    // Update simple fields
-    settings.companyName = req.body.companyName || settings.companyName;
-
-    // ✅ Store full Cloudinary URL instead of filename
-    if (req.body.logoUrl) {
-      settings.logo = req.body.logoUrl; 
+    if (!settings) {
+      settings = new Settings({ companyName: "", logo: "", footer: { contactEmail: "", contactPhone: "", address: "" } });
     }
 
-    // Footer
-    settings.footer.contactEmail =
-      req.body.footer?.email || settings.footer.contactEmail;
-    settings.footer.contactPhone =
-      req.body.footer?.phone || settings.footer.contactPhone;
-    settings.footer.address =
-      req.body.footer?.address || settings.footer.address;
+    // Update fields safely
+    settings.companyName = req.body.companyName || settings.companyName;
+
+    if (req.body.logoUrl) {
+      settings.logo = req.body.logoUrl.startsWith(`${req.protocol}://`)
+        ? req.body.logoUrl // full URL (Cloudinary or external)
+        : req.body.logoUrl.replace(/^\/uploads\//, ""); // local file
+    }
+
+    settings.footer = {
+      contactEmail: req.body.footer?.email || settings.footer?.contactEmail || "",
+      contactPhone: req.body.footer?.phone || settings.footer?.contactPhone || "",
+      address: req.body.footer?.address || settings.footer?.address || "",
+    };
 
     await settings.save();
 
@@ -83,14 +82,11 @@ export const updateSettings = async (req, res) => {
       settings: {
         companyName: settings.companyName,
         logoUrl,
-        footer: {
-          email: settings.footer?.contactEmail || "",
-          phone: settings.footer?.contactPhone || "",
-          address: settings.footer?.address || "",
-        },
+        footer: settings.footer,
       },
     });
   } catch (err) {
+    console.error("❌ Update error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

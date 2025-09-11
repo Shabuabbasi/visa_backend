@@ -1,105 +1,61 @@
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
+import path from "path";
+
 import businessRoutes from "./Routes/businessRoutes.js";
 import contactRoutes from "./Routes/contactRoutes.js";
 import leadRoutes from "./Routes/leadRoutes.js";
 import settingsRoutes from "./Routes/settingsRoutes.js";
 import uploadRoutes from "./Routes/uploadRoutes.js";
 import userRoutes from "./Routes/userRoutes.js";
-import path from "path";
-
-dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(express.json());
+// ===== Middleware =====
+app.use(express.json()); // Parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // Parse form-data
 app.use(cookieParser());
+
+// Debug middleware - log all requests + body
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.originalUrl}`);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log("   Body:", req.body);
+  }
+  next();
+});
+
+// Serve static uploads (legacy/local use)
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use(cors({
-  origin: "*", 
-  credentials: true
-}));
 
-// CORS: allow only frontend domains in production
-// const allowedOrigins = process.env.FRONTEND_URL
-//   ? process.env.FRONTEND_URL.split(",")
-//   : [
-//   ];
+// ===== CORS setup =====
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend
+  "https://clever-faun-209c47.netlify.app", // netlify frontend
+  "https://frontend-booking-dcdj.vercel.app", // vercel frontend
+];
 
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       if (!origin) return callback(null, true); // allow Postman / server-to-server
-//       if (allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("❌ Not allowed by CORS: " + origin));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
-// CORS: allow only frontend domains in production
-// const allowedOrigins = process.env.FRONTEND_URL
-//   ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/\/$/, "")) // remove spaces + trailing slash
-//   : [];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow Postman/curl
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.warn("❌ Blocked by CORS:", origin);
+        return callback(new Error("Not allowed by CORS"), false);
+      }
+    },
+    credentials: true,
+  })
+);
 
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       if (!origin) return callback(null, true); // allow Postman / server-to-server
-
-//       const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash from request
-
-//       if (allowedOrigins.includes(cleanOrigin)) {
-//         callback(null, true);
-//       } else {
-//         console.error("❌ Blocked by CORS:", origin);
-//         callback(new Error("❌ Not allowed by CORS: " + origin));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
-
-
-
-// const allowedOrigins = process.env.FRONTEND_URL.split(",");
-
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       // allow requests without origin (Thunder/Postman)
-//       if (!origin) return callback(null, true);
-
-//       if (allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("❌ Not allowed by CORS: " + origin));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
-
-
-
-
-// app.use(
-//   cors({
-//     origin: [
-//       process.env.FRONTEND_URL,        // e.g. http://localhost:5173
-//       "https://your-app.netlify.app",  // replace with your real Netlify URL
-//     ],
-//     credentials: true,
-//   })
-// );
-
-// Routes
+// ===== Routes =====
 app.use("/api/business", businessRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/leads", leadRoutes);
@@ -107,7 +63,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", userRoutes);
 
-// MongoDB Connection
+// ===== MongoDB Connection =====
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -117,21 +73,23 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-
 connectDB();
 
-// Sample route
+// ===== Health check route =====
 app.get("/", (req, res) => {
   res.send("🚀 Express server is running...");
 });
 
-// Global error handler
+// ===== Global Error Handler =====
 app.use((err, req, res, next) => {
-  console.error("⚠️ Server Error:", err.stack);
-  res.status(500).json({ message: "Internal Server Error" });
+  console.error("⚠️ Server Error:", err.message || err);
+  if (err.stack) {
+    console.error(err.stack);
+  }
+  res.status(500).json({ message: err.message || "Internal Server Error" });
 });
 
-// Start server
+// ===== Start server =====
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on port ${PORT}`);
