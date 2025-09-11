@@ -74,6 +74,13 @@ app.use("/api/settings", settingsRoutes);
 // app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", userRoutes);
 
+
+
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
+
+
 // ===== MongoDB Connection =====
 // ===== MongoDB Connection =====
 const connectDB = async () => {
