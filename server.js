@@ -11,7 +11,7 @@ import businessRoutes from "./Routes/businessRoutes.js";
 import contactRoutes from "./Routes/contactRoutes.js";
 import leadRoutes from "./Routes/leadRoutes.js";
 import settingsRoutes from "./Routes/settingsRoutes.js";
-import uploadRoutes from "./Routes/uploadRoutes.js";
+
 import userRoutes from "./Routes/userRoutes.js";
 
 const app = express();
@@ -30,8 +30,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static uploads (legacy/local use)
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// // Serve static uploads (legacy/local use)
+// app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ===== CORS setup =====
 const allowedOrigins = [
@@ -60,7 +60,7 @@ app.use("/api/business", businessRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/settings", settingsRoutes);
-app.use("/api/upload", uploadRoutes);
+// app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", userRoutes);
 
 // ===== MongoDB Connection =====

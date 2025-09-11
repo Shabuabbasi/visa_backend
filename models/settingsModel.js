@@ -2,9 +2,7 @@ import mongoose from "mongoose";
 
 const settingsSchema = new mongoose.Schema({
   companyName: { type: String, default: "Bookings" },
-  // Store only file name instead of full URL
-  logo: { type: String, default: "logo.png" }, 
-
+  logo: { type: String, default: "" }, // store image URL only
   footer: {
     contactEmail: { type: String, default: "" },
     contactPhone: { type: String, default: "" },
@@ -13,3 +11,4 @@ const settingsSchema = new mongoose.Schema({
 });
 
 export default mongoose.model("Settings", settingsSchema);
+
