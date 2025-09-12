@@ -41,9 +41,6 @@ app.use(
 // ===== Debug Logging =====
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.originalUrl}`);
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log("   Body:", req.body);
-  }
   next();
 });
 
@@ -57,9 +54,9 @@ app.use("/api/auth", userRoutes);
 // ===== Ping / Health Check =====
 app.get("/ping", (req, res) => res.json({ success: true, message: "pong" }));
 
-// ===== Favicon =====
-app.get("/favicon.ico", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "public", "favicon.ico"));
+// ===== Root (Railway health check) =====
+app.get("/", (req, res) => {
+  res.json({ success: true, message: "Backend is live 🚀" });
 });
 
 // ===== MongoDB Connection =====
@@ -67,8 +64,6 @@ const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB Connected");
-
-    // Seed default settings
     await seedSettings().catch((err) =>
       console.error("❌ Seeder error:", err.message)
     );
@@ -77,11 +72,10 @@ const connectDB = async () => {
   }
 };
 
-// Start server immediately so Railway health checks pass
+// ===== Start Server =====
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  // Connect MongoDB after server starts
   connectDB();
 });
 
