@@ -20,24 +20,25 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===== CORS Setup =====
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://clever-faun-209c47.netlify.app"
-];
+// ===== CORS =====
+const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman / server requests
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(
+          new Error("CORS policy does not allow this origin"),
+          false
+        );
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+  })
+);
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / server-to-server requests
-    if (!allowedOrigins.includes(origin)) {
-      return callback(new Error("CORS policy does not allow this origin"), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
-
-// ===== Debug Logging Middleware =====
+// ===== Debug Logging =====
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.originalUrl}`);
   if (req.body && Object.keys(req.body).length > 0) {
@@ -54,45 +55,38 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/auth", userRoutes);
 
 // ===== Ping / Health Check =====
-app.get("/ping", (req, res) => {
-  res.json({ success: true, message: "pong" });
-});
-
-// ===== Root Route =====
-app.get("/", (req, res) => {
-  res.send("🚀 Express server is running...");
-});
+app.get("/ping", (req, res) => res.json({ success: true, message: "pong" }));
 
 // ===== Favicon =====
 app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "favicon.ico"));
 });
 
-// ===== MongoDB Connection (Async, Non-blocking) =====
-mongoose.connect(process.env.MONGO_URI)
-  .then(async () => {
+// ===== MongoDB Connection =====
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB Connected");
-    // Seed settings asynchronously
-    try {
-      await seedSettings();
-    } catch (err) {
-      console.error("❌ Seeder error:", err.message);
-    }
-  })
-  .catch(err => {
+
+    // Seed default settings
+    await seedSettings().catch((err) =>
+      console.error("❌ Seeder error:", err.message)
+    );
+  } catch (err) {
     console.error("❌ MongoDB Connection Error:", err.message);
-    // Do NOT exit process immediately; server will still respond
-  });
+  }
+};
+
+// Start server immediately so Railway health checks pass
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  // Connect MongoDB after server starts
+  connectDB();
+});
 
 // ===== Global Error Handler =====
 app.use((err, req, res, next) => {
   console.error("⚠️ Server Error:", err.message || err);
-  if (err.stack) console.error(err.stack);
   res.status(500).json({ message: err.message || "Internal Server Error" });
-});
-
-// ===== Start Server =====
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${PORT}`);
 });
