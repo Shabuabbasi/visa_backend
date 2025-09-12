@@ -21,13 +21,34 @@ app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse form-data
 
 // ===== CORS Setup =====
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-app.use(
-  cors({
-    origin: FRONTEND_URL, // Only allow your frontend
-    credentials: true,    // Allow cookies if needed
-  })
-);
+// const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+// app.use(
+//   cors({
+//     origin: FRONTEND_URL, // Only allow your frontend
+//  methods: ["GET","POST","PUT","DELETE"],
+//     credentials: true,    // Allow cookies if needed
+//   })
+// );
+
+
+const allowedOrigins = [
+  "http://localhost:5173",  // local dev
+  "https://clever-faun-209c47.netlify.app" // production
+];
+
+app.use(cors({
+  origin: function(origin, callback){
+    // allow requests with no origin like Postman
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = "The CORS policy for this site does not allow access from the specified Origin.";
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true // if you need cookies/auth headers
+}));
+
 
 // ===== Debug Logging Middleware =====
 app.use((req, res, next) => {
