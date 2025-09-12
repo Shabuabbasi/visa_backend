@@ -17,38 +17,25 @@ import { seedSettings } from "./seed/seedSettings.js";
 const app = express();
 
 // ===== Middleware =====
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse form-data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ===== CORS Setup =====
-// const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-// app.use(
-//   cors({
-//     origin: FRONTEND_URL, // Only allow your frontend
-//  methods: ["GET","POST","PUT","DELETE"],
-//     credentials: true,    // Allow cookies if needed
-//   })
-// );
-
-
 const allowedOrigins = [
-  "http://localhost:5173",  // local dev
-  "https://clever-faun-209c47.netlify.app" // production
+  "http://localhost:5173",
+  "https://clever-faun-209c47.netlify.app"
 ];
 
 app.use(cors({
-  origin: function(origin, callback){
-    // allow requests with no origin like Postman
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin) === -1){
-      const msg = "The CORS policy for this site does not allow access from the specified Origin.";
-      return callback(new Error(msg), false);
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman / server-to-server requests
+    if (!allowedOrigins.includes(origin)) {
+      return callback(new Error("CORS policy does not allow this origin"), false);
     }
     return callback(null, true);
   },
-  credentials: true // if you need cookies/auth headers
+  credentials: true
 }));
-
 
 // ===== Debug Logging Middleware =====
 app.use((req, res, next) => {
@@ -71,34 +58,31 @@ app.get("/ping", (req, res) => {
   res.json({ success: true, message: "pong" });
 });
 
+// ===== Root Route =====
+app.get("/", (req, res) => {
+  res.send("🚀 Express server is running...");
+});
+
 // ===== Favicon =====
 app.get("/favicon.ico", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "favicon.ico"));
 });
 
-// ===== MongoDB Connection =====
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
+// ===== MongoDB Connection (Async, Non-blocking) =====
+mongoose.connect(process.env.MONGO_URI)
+  .then(async () => {
     console.log("✅ MongoDB Connected");
-
-    // Seed default settings safely
+    // Seed settings asynchronously
     try {
       await seedSettings();
     } catch (err) {
       console.error("❌ Seeder error:", err.message);
     }
-  } catch (err) {
+  })
+  .catch(err => {
     console.error("❌ MongoDB Connection Error:", err.message);
-    process.exit(1); // Crash if DB unreachable
-  }
-};
-connectDB();
-
-// ===== Root Route =====
-app.get("/", (req, res) => {
-  res.send("🚀 Express server is running...");
-});
+    // Do NOT exit process immediately; server will still respond
+  });
 
 // ===== Global Error Handler =====
 app.use((err, req, res, next) => {
