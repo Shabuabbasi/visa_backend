@@ -1,10 +1,8 @@
 // server.js
-import dotenv from "dotenv";
-dotenv.config();
-
 import express from "express";
-import cors from "cors";
+import dotenv from "dotenv";
 import mongoose from "mongoose";
+import cors from "cors";
 import path from "path";
 
 import businessRoutes from "./Routes/businessRoutes.js";
@@ -14,25 +12,23 @@ import settingsRoutes from "./Routes/settingsRoutes.js";
 import userRoutes from "./Routes/userRoutes.js";
 import { seedSettings } from "./seed/seedSettings.js";
 
+dotenv.config();
 const app = express();
 
 // ===== Middleware =====
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===== CORS =====
+// ===== CORS Setup =====
 const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true); // allow Postman / server requests
-      if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(
-          new Error("CORS policy does not allow this origin"),
-          false
-        );
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error("CORS not allowed"), false);
     },
     credentials: true,
   })
@@ -51,32 +47,34 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/auth", userRoutes);
 
-// ===== Ping / Health Check =====
-app.get("/ping", (req, res) => res.json({ success: true, message: "pong" }));
-
-// ===== Root (Railway health check) =====
-app.get("/", (req, res) => {
-  res.json({ success: true, message: "Backend is live 🚀" });
+// ===== Health Check =====
+app.get("/ping", (req, res) => {
+  res.json({ success: true, message: "pong" });
 });
 
-// ===== MongoDB Connection =====
+// ===== MongoDB =====
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log("✅ MongoDB Connected");
+
+    // Seed default settings
     await seedSettings().catch((err) =>
       console.error("❌ Seeder error:", err.message)
     );
   } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err.message);
+    console.error("❌ MongoDB Error:", err.message);
   }
 };
 
 // ===== Start Server =====
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  connectDB();
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  connectDB(); // connect DB only after server is up
 });
 
 // ===== Global Error Handler =====
