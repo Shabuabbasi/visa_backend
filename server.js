@@ -19,20 +19,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===== CORS Setup =====
-const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
+// ===== CORS Setup (Allow all frontends) =====
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman / server requests
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("CORS not allowed"), false);
+    origin: (origin, callback) => {
+      callback(null, true); // ✅ allow every origin
     },
-    credentials: true,
+    credentials: true, // ✅ allow cookies / authorization headers
   })
 );
+
+// ===== Root route =====
 app.get("/", (req, res) => {
   res.send("Backend is running on Railway 🚀");
 });
@@ -85,4 +82,3 @@ app.use((err, req, res, next) => {
   console.error("⚠️ Server Error:", err.message || err);
   res.status(500).json({ message: err.message || "Internal Server Error" });
 });
- 
